@@ -83,6 +83,10 @@ class CountdownApp(QMainWindow):
         # 创建主布局 - 使用垂直布局作为基础
         main_layout = QVBoxLayout(central_widget)
         main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # 添加伸缩因子，用于垂直居中
+        main_layout.addStretch(1)
         
         # 创建倒计时显示
         self.time_display = QLabel("00:00:00")
@@ -92,14 +96,40 @@ class CountdownApp(QMainWindow):
         self.time_display.setStyleSheet("background-color: #f8f8f8; border-radius: 10px; padding: 5px;")
         main_layout.addWidget(self.time_display)
         
-        # 添加伸缩因子，使倒计时显示部分能够自动拉伸，充满剩余空间
+        # 添加伸缩因子，用于垂直居中
         main_layout.addStretch(1)
         
+        # 添加全屏按钮（方形半透明按钮，位于右上角）
+        self.fullscreen_button = QPushButton()
+        self.fullscreen_button.setFixedSize(40, 40)
+        self.fullscreen_button.setStyleSheet("background-color: rgba(200, 200, 200, 50); border: 1px solid rgba(150, 150, 150, 100); border-radius: 4px;")
+        self.fullscreen_button.setText("↗")  # 使用第一个箭头图标（放大到全屏）
+        self.fullscreen_button.setToolTip("全屏显示")
+        self.fullscreen_button.clicked.connect(self.toggle_fullscreen)
+        
+        # 创建一个水平布局来放置全屏按钮
+        top_layout = QHBoxLayout()
+        top_layout.addStretch(1)
+        top_layout.addWidget(self.fullscreen_button)
+        main_layout.insertLayout(1, top_layout)
+        
+        # 初始化全屏模式标志
+        self.is_fullscreen = False
+        
+        # 创建全屏模式下的半透明退出按钮
+        self.exit_fullscreen_button = QPushButton()
+        self.exit_fullscreen_button.setFixedSize(40, 40)
+        self.exit_fullscreen_button.setStyleSheet("background-color: rgba(200, 200, 200, 50); border: 1px solid rgba(150, 150, 150, 100); border-radius: 4px;")
+        self.exit_fullscreen_button.setText("↙")  # 使用第二个箭头图标（恢复成窗口）
+        self.exit_fullscreen_button.setToolTip("退出全屏")
+        self.exit_fullscreen_button.clicked.connect(self.toggle_fullscreen)
+        self.exit_fullscreen_button.hide()  # 默认隐藏
+        
         # 底部区域容器
-        bottom_widget = QWidget()
+        self.bottom_widget = QWidget()
         # 设置底部控件的固定高度
-        bottom_widget.setFixedHeight(180)  # 根据内容调整合适的高度
-        bottom_layout = QVBoxLayout(bottom_widget)
+        self.bottom_widget.setFixedHeight(180)  # 根据内容调整合适的高度
+        bottom_layout = QVBoxLayout(self.bottom_widget)
         
         # 时间设置区域
         time_group = QWidget()
@@ -148,7 +178,7 @@ class CountdownApp(QMainWindow):
         bottom_layout.addWidget(button_group)
         
         # 将底部区域添加到主布局
-        main_layout.addWidget(bottom_widget)
+        main_layout.addWidget(self.bottom_widget)
         
         # 保留通知文本变量，确保功能正常工作
         self.notification_text = QLineEdit("倒计时结束！")
@@ -257,6 +287,7 @@ class CountdownApp(QMainWindow):
 - 系统托盘后台运行
 - 中英文语言切换
 - 本地配置存储
+- 全屏模式显示
 
 3. 使用方法
 3.1 时间设置
@@ -285,12 +316,15 @@ class CountdownApp(QMainWindow):
 当窗口关闭时，应用程序会最小化到系统托盘，继续后台运行。
 在系统托盘图标上右键，可选择显示窗口或退出应用程序。
 
+3.7 全屏模式
+点击右上角的半透明按钮可切换到全屏模式，再次点击可返回窗口模式。
+
 4. 技术支持
 如有任何问题或建议，请联系开发者。
 
 5. 版本信息
-当前版本：v1.01
-发布日期：2026-02-08
+当前版本：v4.0
+发布日期：2026-02-09
 """
             window_title = "使用说明书"
         else:
@@ -307,6 +341,7 @@ Countdown Timer is a powerful countdown tool with multiple setting options, suit
 - System tray background running
 - Chinese and English language switching
 - Local configuration storage
+- Fullscreen mode display
 
 3. Usage Instructions
 3.1 Time Setting
@@ -335,12 +370,15 @@ In Settings menu -> Language, select Chinese or English to switch the applicatio
 When the window is closed, the application will minimize to the system tray and continue running in the background.
 Right-click on the system tray icon to select Show Window or Exit Application.
 
+3.7 Fullscreen Mode
+Click the semi-transparent button in the top right corner to switch to fullscreen mode, click again to return to window mode.
+
 4. Technical Support
 For any questions or suggestions, please contact the developer.
 
 5. Version Information
-Current Version: v1.01
-Release Date: 2026-02-08
+Current Version: v4.0
+Release Date: 2026-02-09
 """
             window_title = "User Manual"
         
@@ -355,7 +393,7 @@ Release Date: 2026-02-08
     def show_about(self):
         # 根据当前语言选择关于对话框内容
         if self.current_language == "zh":
-            about_content = """循环计时器 v1.01
+            about_content = """循环计时器 v4.0
 
 一款由菜鸟开发的倒计时工具，该应用主要由Trae SOLO帮助编写。
 
@@ -370,7 +408,7 @@ Release Date: 2026-02-08
 """
             window_title = "关于"
         else:
-            about_content = """Countdown Timer v1.01
+            about_content = """Countdown Timer v4.0
 
 A countdown tool developed by a novice, mainly written with the help of Trae SOLO.
 
@@ -501,7 +539,11 @@ Contact:
         self.stop_button.setText(lang_dict["stop"])
         self.reset_button.setText(lang_dict["reset"])
         
-
+        # 更新全屏按钮和退出全屏按钮
+        if hasattr(self, 'fullscreen_button'):
+            self.fullscreen_button.setToolTip("全屏显示" if self.current_language == "zh" else "Fullscreen")
+        if hasattr(self, 'exit_fullscreen_button'):
+            self.exit_fullscreen_button.setToolTip("退出全屏" if self.current_language == "zh" else "Exit Fullscreen")
         
         # 更新时间标签
         self.hours_label.setText(lang_dict["hours"])
@@ -615,6 +657,94 @@ Contact:
     def update_display(self):
         # 更新倒计时显示
         self.time_display.setText(self.time_left.toString("HH:mm:ss"))
+
+    def adjust_font_size(self):
+        # 调整字体大小，使其充满中间空间
+        window_size = self.size()
+        
+        # 计算中间区域的大小
+        # 考虑到顶部菜单栏和底部控件的高度
+        if self.is_fullscreen:
+            # 全屏模式下，使用整个窗口高度
+            available_height = window_size.height()
+            available_width = window_size.width()
+        else:
+            # 非全屏模式下，使用窗口高度的85%作为可用高度
+            available_height = window_size.height() * 0.85
+            available_width = window_size.width() * 0.9
+        
+        # 计算合适的字体大小，确保能够充满中间区域
+        # 根据宽度和高度分别计算字体大小，取较小值
+        font_size_by_width = available_width // 8  # 8个字符（HH:MM:SS）
+        font_size_by_height = available_height
+        
+        # 取较小值，确保字体能够完全显示
+        font_size = int(min(font_size_by_width, font_size_by_height))
+        
+        # 设置字体大小范围，只设置最小值，不设置最大值
+        font_size = max(24, font_size)
+        
+        # 更新倒计时显示字体大小
+        font = QFont("Arial", font_size, QFont.Bold)
+        self.time_display.setFont(font)
+        
+        # 确保倒计时显示在屏幕中央
+        self.time_display.setAlignment(Qt.AlignCenter)
+
+    def toggle_fullscreen(self):
+        # 切换全屏模式
+        if not self.is_fullscreen:
+            # 进入全屏模式
+            self.is_fullscreen = True
+            
+            # 隐藏所有其他控件
+            self.menuBar().hide()
+            self.fullscreen_button.hide()
+            self.bottom_widget.hide()
+            
+            # 确保退出全屏按钮只添加一次到布局中
+            if not hasattr(self, 'exit_fullscreen_layout'):
+                # 将退出全屏按钮添加到布局中（位于右上角，与原全屏按钮位置相同）
+                central_widget = self.centralWidget()
+                main_layout = central_widget.layout()
+                self.exit_fullscreen_layout = QHBoxLayout()
+                self.exit_fullscreen_layout.addStretch(1)
+                self.exit_fullscreen_layout.addWidget(self.exit_fullscreen_button)
+                main_layout.insertLayout(1, self.exit_fullscreen_layout)  # 插入到与原全屏按钮相同的位置
+            
+            # 显示退出全屏按钮
+            self.exit_fullscreen_button.show()
+            
+            # 最大化窗口
+            self.showMaximized()
+            
+            # 调整字体大小，使其充满整个屏幕
+            self.adjust_font_size()
+        else:
+            # 退出全屏模式
+            self.is_fullscreen = False
+            
+            # 显示所有控件
+            self.menuBar().show()
+            self.fullscreen_button.show()
+            self.bottom_widget.show()
+            
+            # 隐藏退出全屏按钮
+            self.exit_fullscreen_button.hide()
+            
+            # 恢复窗口大小
+            self.showNormal()
+            
+            # 调整字体大小
+            self.adjust_font_size()
+        
+        # 更新全屏按钮的图标和提示文本
+        if self.is_fullscreen:
+            self.fullscreen_button.setText("↙")  # 使用第二个箭头图标（恢复成窗口）
+            self.fullscreen_button.setToolTip("退出全屏")
+        else:
+            self.fullscreen_button.setText("↗")  # 使用第一个箭头图标（放大到全屏）
+            self.fullscreen_button.setToolTip("全屏显示")
 
     def update_button_states(self):
         # 更新按钮状态
